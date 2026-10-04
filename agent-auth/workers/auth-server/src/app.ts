@@ -19,7 +19,9 @@ import {
   ALG,
   CLIENT_ASSERTION_TYPE,
   importPrivateKey,
+  harden,
   importPublicKey,
+  internalError,
   publicPart,
   replayStore,
   thumbprint,
@@ -52,18 +54,22 @@ class OAuthError extends Error {
 }
 
 export function createApp(policy: Policy = POLICY) {
-  const app = new Hono<{ Bindings: Env }>();
+  const app = harden(new Hono<{ Bindings: Env }>());
 
   // Errors in the RFC 6749 §5.2 JSON shape; token responses must never be cached.
   app.onError((err, c) => {
-    if (!(err instanceof OAuthError)) throw err;
+    if (!(err instanceof OAuthError)) return internalError(err, c);
     c.header("Cache-Control", "no-store");
     return c.json({ error: err.error, error_description: err.message }, err.status);
   });
 
-  app.get("/.well-known/oauth-authorization-server", (c) =>
+  // Public keys and metadata are safe to cache briefly.
+  const PUBLIC_CACHE = "public, max-age=300";
+
+  app.get("/.well-known/oauth-authorization-server", (c) => {
     // RFC 8414 discovery document.
-    c.json({
+    c.header("Cache-Control", PUBLIC_CACHE);
+    return c.json({
       issuer: c.env.ISSUER,
       token_endpoint: `${c.env.ISSUER}/token`,
       jwks_uri: `${c.env.ISSUER}/.well-known/jwks.json`,
@@ -71,12 +77,13 @@ export function createApp(policy: Policy = POLICY) {
       token_endpoint_auth_methods_supported: ["private_key_jwt"],
       token_endpoint_auth_signing_alg_values_supported: [ALG],
       dpop_signing_alg_values_supported: [ALG],
-    }),
-  );
+    });
+  });
 
   app.get("/.well-known/jwks.json", (c) => {
     // Agents fetch this to verify the tokens we sign. Public half only!
     const jwk = JSON.parse(c.env.SIGNING_KEY) as JWK;
+    c.header("Cache-Control", PUBLIC_CACHE);
     return c.json({ keys: [{ ...publicPart(jwk), kid: jwk.kid, alg: ALG, use: "sig" }] });
   });
 

@@ -12,7 +12,24 @@ export default defineConfig({
 			},
 
 			// Builds a Worker (+ static assets) using the settings in wrangler.jsonc.
-			adapter: adapter()
+			adapter: adapter(),
+
+			// Content Security Policy. SvelteKit adds a nonce to the inline
+			// script it generates, so nothing else inline can run.
+			csp: {
+				mode: 'auto',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self'],
+					'img-src': ['self', 'data:'],
+					'connect-src': ['self'],
+					'object-src': ['none'],
+					'base-uri': ['none'],
+					'form-action': ['self'],
+					'frame-ancestors': ['none']
+				}
+			}
 		})
 	]
 });

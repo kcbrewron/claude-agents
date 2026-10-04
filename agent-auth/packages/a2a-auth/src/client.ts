@@ -61,8 +61,9 @@ export class AgentClient {
     this.key = importPrivateKey(opts.privateJwk);
   }
 
-  get agentId() {
-    return this.opts.agentId;
+  /** Forget cached access tokens, e.g. after a key rotation. */
+  clearTokens(): void {
+    this.tokens.clear();
   }
 
   // -- step 1: prove who we are to the authorization server ----------------

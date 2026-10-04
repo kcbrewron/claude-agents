@@ -5,6 +5,12 @@ import { assistantClient } from '#lib/server/assistant.js';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
+	// Only JSON. Browsers can't send application/json cross-site without a CORS
+	// preflight (which we never approve), so this also blocks CSRF in depth,
+	// on top of SvelteKit's own origin check for form-like content types.
+	if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+		error(415, 'expected application/json');
+	}
 	const { message } = (await request.json().catch(() => ({}))) as { message?: unknown };
 	if (typeof message !== 'string' || !message.trim() || message.length > 4000) {
 		error(400, 'message must be 1-4000 characters');

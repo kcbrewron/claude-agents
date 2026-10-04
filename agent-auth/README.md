@@ -44,7 +44,8 @@ framework.
 | **DPoP** ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449)) | Tokens are bound to the caller's key, so a leaked token alone is useless. Every request carries a fresh proof for its exact method and URL. |
 | **Durable Object for replay protection** | Requests land on many isolates in many data centers. A per-isolate memory cache would miss replays, and KV is eventually consistent. A Durable Object is a single, strongly consistent place to record "this proof was already used". |
 | **Policy is deny-by-default and enforced by the auth server, not the AI** | LLMs can be manipulated (prompt injection). The assistant is *offered* a `send_email` tool, but policy never grants `email:send`. However the model is persuaded, the auth server refuses. |
-| **Cloudflare Access** for you → web UI | Logging in is a solved problem. Access handles it (Google, GitHub, email PIN). The Worker still *verifies* the Access JWT itself, and **fails closed** if Access isn't configured. |
+| **Cloudflare Access** for you → web UI | Logging in is a solved problem. Access handles it (Google, GitHub, email PIN). The Worker still *verifies* the Access JWT itself, and **fails closed** if Access isn't configured. The local-dev bypass only works on `localhost`. |
+| **Headers on every response** | The web UI sends a nonce-based CSP, `frame-ancestors 'none'`, HSTS, `nosniff` and `Cache-Control: private, no-store` (pages hold your data), even on errors. The agents send `default-src 'none'` and `no-store`; only the public JWKS and discovery documents may be cached. |
 
 ---
 
@@ -86,6 +87,7 @@ agent-auth/
 │       ├── verifier.ts         requireAgent(): Hono middleware for receiving agents
 │       ├── replay.ts           ReplayStore interface (+ in-memory version for tests)
 │       ├── replay-do.ts        ReplayGuard Durable Object
+│       ├── hardening.ts        security headers, no-store, body limit, safe errors
 │       └── agent-env.ts        bindings shared by every receiving agent
 ├── workers/
 │   ├── auth-server/            Hono: /token, JWKS, discovery · policy.json
@@ -94,7 +96,12 @@ agent-auth/
 │   └── email-agent/            Hono + KV: /drafts, /send (send is never granted)
 ├── apps/web/                   SvelteKit chat UI (adapter-cloudflare)
 ├── scripts/                    gen-keys.mjs · dev.mjs · deploy.mjs
-└── tests/                      Vitest: one test per security property
+└── tests/                      Vitest: security properties, edge cases, 80% per package
+
+../.github/
+├── workflows/                  ci.yml · deploy.yml · security-review.yml
+├── scripts/sarif-gate.mjs      fails CI on high/critical CodeQL findings
+└── security-review.md          the checklist the agentic reviewer follows
 ```
 
 Each Worker has an `app.ts` (pure Hono app, easy to test) and an `index.ts` (the
@@ -117,9 +124,10 @@ This installs every workspace: the shared library, four Workers and the web app.
 
 ### 2. Run the tests (no Cloudflare account needed)
 ```bash
-npm test
+npm test                 # quick run
+npm run test:coverage    # what CI runs: fails below 80% in any package
 ```
-The 22 tests wire the real Hono apps together in-process, with small fakes for
+The tests wire the real Hono apps together in-process, with small fakes for
 service bindings, KV, Durable Objects and Workers AI (`tests/network.ts`). Each one
 pins down one property, for example:
 - a stolen token used with a thief's key → 401
@@ -175,7 +183,30 @@ Until you do this, the deployed web UI answers **503**. That's intentional: it f
    cd apps/web && npx vite build && npx wrangler deploy
    ```
 
-### 7. Experiments
+### 7. Turn on CI/CD (GitHub Actions)
+Three workflows live in `.github/workflows/`:
+
+| Workflow | When | What it does |
+|---|---|---|
+| `ci.yml` | every PR and push to `main` | Three parallel jobs. **Tests**: type-check, then Vitest with coverage; fails if statements, branches, functions or lines drop below 80% in *any* package. **Dependency audit**: `npm audit --audit-level=high`. **CodeQL**: `security-extended` queries on the TypeScript and on the workflows themselves; `.github/scripts/sarif-gate.mjs` fails the job on any high (≥7.0) or critical (≥9.0) finding. |
+| `deploy.yml` | after `ci.yml` succeeds for a push to `main` | Deploys the exact commit CI tested, skips if `main` has already moved on, and verifies every Worker's secrets exist. PRs never deploy. |
+| `security-review.yml` | every PR | Claude reviews the code against `.github/security-review.md` (trust boundaries, unauthenticated access, input validation, security and cache headers) and comments its findings. Advisory: people decide. |
+
+One-time setup:
+1. **Bootstrap from your machine** (sets the agents' private keys as Worker secrets,
+   so they never need to live in GitHub): `npm run keys && npm run deploy`.
+2. **Create a Cloudflare API token** from the *Edit Cloudflare Workers* template, and
+   note your account ID.
+3. **In GitHub → Settings → Environments**, create `production` with:
+   - secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
+   - variables `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (from step 6)
+   - optionally, required reviewers, for a manual approval before each deploy
+4. **Add a repository secret** `ANTHROPIC_API_KEY` for the security review.
+5. **Protect `main`** (Settings → Rules): require pull requests and the CI checks
+   (*Tests and coverage*, *Dependency audit*, *CodeQL (…)*). Without this, CI failures
+   block the deploy but not the merge.
+
+### 8. Experiments
 - **Grant a permission.** Add `"email:send"` to the assistant in
   `workers/auth-server/policy.json`, redeploy the auth server, and ask it to send
   an email. Then take the permission away again.

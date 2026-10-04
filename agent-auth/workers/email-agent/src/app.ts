@@ -8,7 +8,7 @@
  */
 import { Hono } from "hono";
 import { z } from "zod";
-import { requireAgent, verifierFromEnv, type AgentVariables, type ResourceServerEnv } from "@agent-auth/a2a";
+import { harden, requireAgent, verifierFromEnv, type AgentVariables, type ResourceServerEnv } from "@agent-auth/a2a";
 
 export type Env = ResourceServerEnv & { DRAFTS: KVNamespace };
 type App = { Bindings: Env; Variables: AgentVariables };
@@ -20,7 +20,7 @@ const Email = z.object({
 });
 
 export function createApp() {
-  const app = new Hono<App>();
+  const app = harden(new Hono<App>());
 
   app.get("/drafts", requireAgent(verifierFromEnv, "email:draft"), async (c) => {
     const { keys } = await c.env.DRAFTS.list({ prefix: "draft:" });

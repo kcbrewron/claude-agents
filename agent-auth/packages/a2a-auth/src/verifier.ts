@@ -172,7 +172,9 @@ export function requireAgent<B extends object>(
       c.set("caller", caller);
     } catch (e) {
       if (!(e instanceof AgentAuthError)) throw e;
-      c.header("WWW-Authenticate", `DPoP algs="${ALG}", error="${e.code}", error_description="${e.message}"`);
+      // Header values can't safely carry arbitrary error text (quotes, control chars).
+      const desc = e.message.replace(/[^\x20-\x7e]|"/g, "'");
+      c.header("WWW-Authenticate", `DPoP algs="${ALG}", error="${e.code}", error_description="${desc}"`);
       return c.json({ error: e.code, error_description: e.message }, e.status);
     }
     await next();

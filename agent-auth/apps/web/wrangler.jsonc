@@ -7,6 +7,8 @@
   // The only public Worker. Put it behind Cloudflare Access (Zero Trust ->
   // Access -> Applications) so only you can open it.
   "workers_dev": true,
+  // Preview URLs are separate hostnames your Access application may not cover.
+  "preview_urls": false,
   "vars": {
     "AGENT_ID": "web-ui",
     "ISSUER": "https://auth.agents.internal",

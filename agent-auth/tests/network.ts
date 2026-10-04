@@ -64,7 +64,10 @@ const bind = (app: { fetch: Function }, env: object) => ({
   fetch: (req: Request) => app.fetch(req, env) as Promise<Response>,
 });
 
-export async function buildNetwork(script: ModelOutput[] = []) {
+export async function buildNetwork(
+  script: ModelOutput[] = [],
+  policy?: Record<string, Record<string, string[]>>,
+) {
   const [as, assistantKey, webKey] = await Promise.all([generateAgentKey(), generateAgentKey(), generateAgentKey()]);
   const agentPublicKeys: Record<string, JWK> = { assistant: assistantKey.publicJwk, "web-ui": webKey.publicJwk };
 
@@ -74,7 +77,7 @@ export async function buildNetwork(script: ModelOutput[] = []) {
     AGENT_PUBLIC_KEYS: JSON.stringify(agentPublicKeys),
     REPLAY: fakeReplayNamespace(),
   };
-  const auth = bind(createAuthServer(), authEnv);
+  const auth = bind(createAuthServer(policy), authEnv);
 
   const resourceEnv = (id: string, url: string) => ({
     AGENT_ID: id, SELF_URL: url, ISSUER, AUTH: auth, REPLAY: fakeReplayNamespace(),
@@ -107,6 +110,8 @@ export async function buildNetwork(script: ModelOutput[] = []) {
   return {
     auth, calendar, email, assistant, ai, events, drafts, as,
     webUi: clientFor("web-ui", webKey.privateJwk),
+    webKey,
+    assistantKey,
     // Acting *as* the assistant, to probe the calendar/email agents directly.
     assistantClient: clientFor("assistant", assistantKey.privateJwk),
     clientFor,

@@ -1,19 +1,20 @@
 /** Calendar agent: owns the calendar and only trusts verified callers. */
 import { Hono } from "hono";
 import { z } from "zod";
-import { requireAgent, verifierFromEnv, type AgentVariables, type ResourceServerEnv } from "@agent-auth/a2a";
+import { harden, requireAgent, verifierFromEnv, type AgentVariables, type ResourceServerEnv } from "@agent-auth/a2a";
 
 export type Env = ResourceServerEnv & { EVENTS: KVNamespace };
 type App = { Bindings: Env; Variables: AgentVariables };
 
 const NewEvent = z.object({
   title: z.string().min(1).max(200),
-  start: z.string().min(1).max(64),
+  // ISO 8601 local date-time, e.g. 2026-10-10T09:00 (also keeps KV keys well-formed)
+  start: z.iso.datetime({ local: true }),
   attendees: z.array(z.string().email()).max(50).default([]),
 });
 
 export function createApp() {
-  const app = new Hono<App>();
+  const app = harden(new Hono<App>());
 
   app.get("/events", requireAgent(verifierFromEnv, "calendar:read"), async (c) => {
     // Keys are "event:<start>:<id>", so listing returns them in date order.

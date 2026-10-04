@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { JWK } from "jose";
 import {
   AgentClient,
+  harden,
   requireAgent,
   verifierFromEnv,
   type AgentVariables,
@@ -59,7 +60,7 @@ function clientFor(env: Env): AgentClient {
 }
 
 export function createApp() {
-  const app = new Hono<App>();
+  const app = harden(new Hono<App>());
 
   app.post("/chat", requireAgent(verifierFromEnv, "assistant:chat"), async (c) => {
     const parsed = ChatRequest.safeParse(await c.req.json().catch(() => null));
