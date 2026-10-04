@@ -17,13 +17,10 @@
  * The web UI's Cloudflare Access settings can come from the environment
  * (ACCESS_TEAM_DOMAIN, ACCESS_AUD) instead of being committed to wrangler.jsonc.
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { join } from "node:path";
+import { root, runTool } from "./run-tool.mjs";
 const codeOnly = process.argv.includes("--code-only");
 
 // [directory, secrets the Worker needs]
@@ -37,14 +34,14 @@ const WORKERS = [
 
 function parseDevVars(file) {
   const out = {};
-  for (const line of readFileSync(file, "utf8").split("\n")) {
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const m = line.match(/^([A-Z_]+)='(.*)'$/);
     if (m) out[m[1]] = m[2];
   }
   return out;
 }
 
-const wrangler = (cwd, ...args) => execFileSync("npx", ["wrangler", ...args], { cwd, stdio: "inherit" });
+const wrangler = (cwd, ...args) => runTool("wrangler", args, { cwd });
 
 function uploadSecrets(cwd, names) {
   const devVars = join(cwd, ".dev.vars");
@@ -62,7 +59,11 @@ function uploadSecrets(cwd, names) {
 }
 
 function verifySecrets(cwd, names) {
-  const out = execFileSync("npx", ["wrangler", "secret", "list", "--format", "json"], { cwd, encoding: "utf8" });
+  const out = runTool("wrangler", ["secret", "list", "--format", "json"], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  });
   const present = new Set(JSON.parse(out).map((s) => s.name));
   const missing = names.filter((n) => !present.has(n));
   if (missing.length) {
@@ -77,7 +78,7 @@ for (const [dir, secretNames] of WORKERS) {
   console.log(`\n=== ${dir} ===`);
   const args = ["deploy"];
   if (dir === "apps/web") {
-    execFileSync("npx", ["vite", "build"], { cwd, stdio: "inherit" });
+    runTool("vite", ["build"], { cwd });
     for (const name of ["ACCESS_TEAM_DOMAIN", "ACCESS_AUD"]) {
       if (process.env[name]) args.push("--var", `${name}:${process.env[name]}`);
     }

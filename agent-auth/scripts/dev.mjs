@@ -9,14 +9,13 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { root, runTool } from "./run-tool.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const sh = (cmd, args, cwd = root) => execFileSync(cmd, args, { cwd, stdio: "inherit" });
-
-if (!existsSync(join(root, "apps/web/.dev.vars"))) sh("node", ["scripts/gen-keys.mjs"]);
-sh("npx", ["vite", "build"], join(root, "apps/web"));
+if (!existsSync(join(root, "apps/web/.dev.vars"))) {
+  execFileSync(process.execPath, [join(root, "scripts/gen-keys.mjs")], { stdio: "inherit" });
+}
+runTool("vite", ["build"], { cwd: join(root, "apps/web") });
 
 const configs = [
   "apps/web/wrangler.jsonc",
@@ -25,4 +24,4 @@ const configs = [
   "workers/calendar-agent/wrangler.jsonc",
   "workers/email-agent/wrangler.jsonc",
 ];
-sh("npx", ["wrangler", "dev", ...configs.flatMap((c) => ["-c", c]), ...process.argv.slice(2)]);
+runTool("wrangler", ["dev", ...configs.flatMap((c) => ["-c", c]), ...process.argv.slice(2)], { cwd: root });
