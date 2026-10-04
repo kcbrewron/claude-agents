@@ -3,4 +3,4 @@ My experimentation and trials with claude code sub agents. Available to the publ
 
 ## Projects
 
-- [`agent-auth/`](agent-auth/README.md) — agent-to-agent authentication for a personal assistant (OAuth client credentials with `private_key_jwt`, audience-scoped tokens, DPoP key binding).
+- [`agent-auth/`](agent-auth/README.md) — a personal assistant on Cloudflare Workers (Hono APIs, SvelteKit UI, Workers AI) with agent-to-agent authentication: `private_key_jwt`, audience-scoped tokens, DPoP key binding, Durable Object replay protection.

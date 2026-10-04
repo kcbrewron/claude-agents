@@ -1,0 +1,12 @@
+{
+  "_comment": "Which agent may ask for which scopes at which other agent. Anything not listed is denied.",
+  "agents": {
+    "web-ui": {
+      "assistant": ["assistant:chat"]
+    },
+    "assistant": {
+      "calendar-agent": ["calendar:read", "calendar:write"],
+      "email-agent": ["email:draft"]
+    }
+  }
+}

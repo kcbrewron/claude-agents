@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "a2a-email-agent",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false, // only reachable via service bindings
+  "preview_urls": false,
+  "vars": {
+    "AGENT_ID": "email-agent",
+    "SELF_URL": "https://email.agents.internal",
+    "ISSUER": "https://auth.agents.internal"
+  },
+  "services": [{ "binding": "AUTH", "service": "a2a-auth-server" }],
+  // No id needed: `wrangler deploy` creates the namespace on first deploy and
+  // `wrangler dev` simulates it locally.
+  "kv_namespaces": [{ "binding": "DRAFTS" }],
+  "durable_objects": {
+    "bindings": [{ "name": "REPLAY", "class_name": "ReplayGuard" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ReplayGuard"] }],
+  "observability": { "enabled": true }
+}
