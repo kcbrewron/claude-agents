@@ -1,0 +1,124 @@
+# Quality and security gate. Three independent jobs run in parallel; all three
+# must pass for the commit to be deployable (see deploy.yml).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege by default; jobs ask for more only where needed.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Cancel superseded PR runs, but never a run on main (deploys depend on it).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: agent-auth
+
+jobs:
+  test:
+    name: Tests and coverage (80% per package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: agent-auth/package-lock.json
+
+      - name: Install (exactly what the lockfile says)
+        run: npm ci
+
+      - name: Type-check every workspace
+        run: npm run typecheck
+
+      # Fails the job if statements, branches, functions or lines drop
+      # below 80% in ANY package (thresholds live in vitest.config.ts).
+      - name: Unit tests with coverage thresholds
+        run: npm run test:coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          [ -f coverage/coverage-summary.json ] || exit 0
+          node -e '
+            const s = require("./coverage/coverage-summary.json");
+            const keys = ["statements", "branches", "functions", "lines"];
+            let out = "### Coverage\n| File | Statements | Branches | Functions | Lines |\n|---|---|---|---|---|\n";
+            for (const [file, v] of Object.entries(s)) {
+              const name = file === "total" ? "**total**" : file.replace(process.cwd() + "/", "");
+              out += `| ${name} | ` + keys.map((k) => `${v[k].pct}%`).join(" | ") + " |\n";
+            }
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+          '
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: agent-auth/coverage/
+          retention-days: 14
+
+  dependencies:
+    name: Dependency audit (no high/critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # CodeQL only analyses our own code. Known vulnerabilities in npm
+      # dependencies (including dev tools like wrangler, which run with deploy
+      # credentials) are checked here.
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+  codeql:
+    name: CodeQL (${{ matrix.language }}, no high/critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # upload results to the Security tab
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # "actions" scans these workflow files for injection and permission issues.
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+          output: ${{ runner.temp }}/codeql-results
+
+      # CodeQL reports but never fails the build by itself; this does.
+      - name: Fail on high or critical findings
+        working-directory: .
+        run: node .github/scripts/sarif-gate.mjs "${{ runner.temp }}/codeql-results" 7.0

@@ -1,0 +1,17 @@
+# Keeps dependencies and GitHub Actions current, so `npm audit` findings get
+# fix PRs automatically instead of just failing CI.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /agent-auth
+    schedule:
+      interval: weekly
+    groups:
+      # One PR for routine updates; security updates still arrive individually.
+      dependencies:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
