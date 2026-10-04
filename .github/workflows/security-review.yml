@@ -5,7 +5,9 @@
 # a human decision. The deterministic gates (tests, coverage, CodeQL, npm audit)
 # live in ci.yml.
 #
-# Required secret: ANTHROPIC_API_KEY
+# Required secret: CLAUDE_CODE_OAUTH_TOKEN, from running `claude setup-token`
+# in Claude Code on your machine. It uses your Claude Pro/Max subscription's
+# usage instead of pay-as-you-go API credits.
 name: Security review
 
 on:
@@ -45,7 +47,7 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}

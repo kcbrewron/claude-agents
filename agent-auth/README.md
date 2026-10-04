@@ -201,7 +201,11 @@ One-time setup:
    - secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
    - variables `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (from step 6)
    - optionally, required reviewers, for a manual approval before each deploy
-4. **Add a repository secret** `ANTHROPIC_API_KEY` for the security review.
+4. **Add a repository secret** `CLAUDE_CODE_OAUTH_TOKEN` for the security review.
+   Run `claude setup-token` in Claude Code on your machine, sign in, and paste the
+   token it prints. Reviews then count against your Claude Pro/Max usage limits
+   instead of API credits. (With an API key instead, swap the workflow input to
+   `anthropic_api_key` and name the secret `ANTHROPIC_API_KEY`.)
 5. **Protect `main`** (Settings → Rules): require pull requests and the CI checks
    (*Tests and coverage*, *Dependency audit*, *CodeQL (…)*). Without this, CI failures
    block the deploy but not the merge.
