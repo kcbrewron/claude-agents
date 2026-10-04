@@ -1,0 +1,17 @@
+{
+  "_comment": "Which agent may ask for which scopes at which other agent. Anything not listed is denied.",
+  "agents": {
+    "assistant": {
+      "grants": {
+        "calendar-agent": ["calendar:read", "calendar:write"],
+        "email-agent": ["email:draft"]
+      }
+    },
+    "calendar-agent": {
+      "grants": {}
+    },
+    "email-agent": {
+      "grants": {}
+    }
+  }
+}
