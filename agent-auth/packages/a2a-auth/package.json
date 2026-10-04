@@ -1,0 +1,13 @@
+{
+  "name": "@agent-auth/a2a",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./replay-do": "./src/replay-do.ts"
+  },
+  "dependencies": {
+    "jose": "^6.2.0",
+    "hono": "^4.13.0"
+  }
+}

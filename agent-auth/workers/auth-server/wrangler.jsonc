@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "a2a-auth-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // Not reachable from the internet: other Workers reach it only through
+  // service bindings. Flip to true if an external agent ever needs tokens.
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    // A logical identifier, not a DNS name. It must match ISSUER in every agent.
+    "ISSUER": "https://auth.agents.internal",
+    "ACCESS_TOKEN_TTL": "300"
+  },
+  // Secrets (set with `npm run deploy`, or .dev.vars locally):
+  //   SIGNING_KEY        this server's private JWK
+  //   AGENT_PUBLIC_KEYS  {"assistant": <public JWK>, "web-ui": <public JWK>}
+  "durable_objects": {
+    "bindings": [{ "name": "REPLAY", "class_name": "ReplayGuard" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ReplayGuard"] }],
+  "observability": { "enabled": true }
+}

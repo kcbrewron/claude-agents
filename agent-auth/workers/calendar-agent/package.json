@@ -1,0 +1,15 @@
+{
+  "name": "@agent-auth/calendar-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@agent-auth/a2a": "*",
+    "hono": "^4.13.0",
+    "zod": "^4.1.0"
+  }
+}

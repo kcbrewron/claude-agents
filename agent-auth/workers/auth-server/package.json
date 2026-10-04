@@ -1,0 +1,15 @@
+{
+  "name": "@agent-auth/auth-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@agent-auth/a2a": "*",
+    "hono": "^4.13.0",
+    "jose": "^6.2.0"
+  }
+}

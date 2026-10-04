@@ -1,0 +1,24 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "a2a-web",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-09-01",
+  "assets": { "binding": "ASSETS", "directory": ".svelte-kit/cloudflare" },
+  // The only public Worker. Put it behind Cloudflare Access (Zero Trust ->
+  // Access -> Applications) so only you can open it.
+  "workers_dev": true,
+  "vars": {
+    "AGENT_ID": "web-ui",
+    "ISSUER": "https://auth.agents.internal",
+    "ASSISTANT_URL": "https://assistant.agents.internal",
+    // From your Access application: "<team>.cloudflareaccess.com" and its AUD tag.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
+  // Secret: AGENT_PRIVATE_KEY (the web-ui agent's private JWK)
+  "services": [
+    { "binding": "AUTH", "service": "a2a-auth-server" },
+    { "binding": "ASSISTANT", "service": "a2a-assistant" }
+  ],
+  "observability": { "enabled": true }
+}

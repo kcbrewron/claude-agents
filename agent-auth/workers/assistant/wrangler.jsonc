@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "a2a-assistant",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false, // only the web UI can reach it, via a service binding
+  "preview_urls": false,
+  "vars": {
+    "AGENT_ID": "assistant",
+    "SELF_URL": "https://assistant.agents.internal",
+    "ISSUER": "https://auth.agents.internal",
+    "CALENDAR_URL": "https://calendar.agents.internal",
+    "EMAIL_URL": "https://email.agents.internal",
+    // Any Workers AI model with function calling works here.
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  },
+  // Secret: AGENT_PRIVATE_KEY (this agent's private JWK)
+  "ai": { "binding": "AI" },
+  "services": [
+    { "binding": "AUTH", "service": "a2a-auth-server" },
+    { "binding": "CALENDAR", "service": "a2a-calendar-agent" },
+    { "binding": "EMAIL", "service": "a2a-email-agent" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "REPLAY", "class_name": "ReplayGuard" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ReplayGuard"] }],
+  "observability": { "enabled": true }
+}
