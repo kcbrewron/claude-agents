@@ -14,8 +14,8 @@
     "ISSUER": "https://auth.agents.internal",
     "ASSISTANT_URL": "https://assistant.agents.internal",
     // From your Access application: "<team>.cloudflareaccess.com" and its AUD tag.
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "ACCESS_TEAM_DOMAIN": "ronnelson.cloudflareaccess.com",
+    "ACCESS_AUD": "a891a24c1ffc3f2c8b34184b1a5f9cde2d0d0f253ca81f8fe2c16770a50fc114"
   },
   // Secret: AGENT_PRIVATE_KEY (the web-ui agent's private JWK)
   "services": [

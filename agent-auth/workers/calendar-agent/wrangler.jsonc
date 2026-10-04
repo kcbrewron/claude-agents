@@ -1,22 +1,46 @@
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "a2a-calendar-agent",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-09-01",
-  "workers_dev": false, // only reachable via service bindings
-  "preview_urls": false,
-  "vars": {
-    "AGENT_ID": "calendar-agent",
-    "SELF_URL": "https://calendar.agents.internal",
-    "ISSUER": "https://auth.agents.internal"
-  },
-  "services": [{ "binding": "AUTH", "service": "a2a-auth-server" }],
-  // No id needed: `wrangler deploy` creates the namespace on first deploy and
-  // `wrangler dev` simulates it locally.
-  "kv_namespaces": [{ "binding": "EVENTS" }],
-  "durable_objects": {
-    "bindings": [{ "name": "REPLAY", "class_name": "ReplayGuard" }]
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ReplayGuard"] }],
-  "observability": { "enabled": true }
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "a2a-calendar-agent",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-01",
+	"workers_dev": false, // only reachable via service bindings
+	"preview_urls": false,
+	"vars": {
+		"AGENT_ID": "calendar-agent",
+		"SELF_URL": "https://calendar.agents.internal",
+		"ISSUER": "https://auth.agents.internal"
+	},
+	"services": [
+		{
+			"binding": "AUTH",
+			"service": "a2a-auth-server"
+		}
+	],
+	// No id needed: `wrangler deploy` creates the namespace on first deploy and
+	// `wrangler dev` simulates it locally.
+	"kv_namespaces": [
+		{
+			"binding": "EVENTS",
+			"id": "d086bf8bbeda45c58f6c543982fee211"
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "REPLAY",
+				"class_name": "ReplayGuard"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"ReplayGuard"
+			]
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
 }
